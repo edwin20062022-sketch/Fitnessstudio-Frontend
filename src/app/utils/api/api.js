@@ -12,6 +12,7 @@ const getHeaders = () => ({
   Authorization: `Bearer ${getToken()}`
 });
 
+
 // AUTH
 
 export const loginUsuario = async (email, password) => {
@@ -32,9 +33,9 @@ export const registrarUsuario = async (datos) => {
   return res.json();
 };
 
-// ============================================================
+
 // MIEMBROS
-// ============================================================
+
 export const getMiembros = async ({ page = 1, limit = 5, membresia = '' } = {}) => {
   const params = new URLSearchParams({ page, limit });
   if (membresia) params.append('membresia', membresia);
@@ -60,6 +61,15 @@ export const crearMiembro = async (datos) => {
   return res.json();
 };
 
+export const actualizarMiembro = async (id, datos) => {
+  const res = await fetch(`${API_URL}/miembros/${id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(datos)
+  });
+  return res.json();
+};
+
 export const eliminarMiembro = async (id) => {
   const res = await fetch(`${API_URL}/miembros/${id}`, {
     method: 'DELETE',
@@ -68,9 +78,8 @@ export const eliminarMiembro = async (id) => {
   return res.json();
 };
 
-// ============================================================
 // EQUIPOS
-// ============================================================
+
 export const getEquipos = async () => {
   const res = await fetch(`${API_URL}/equipos`, {
     headers: getHeaders()
@@ -104,9 +113,9 @@ export const eliminarEquipo = async (id) => {
   return res.json();
 };
 
-// ============================================================
+
 // ÁREAS
-// ============================================================
+
 export const getAreas = async () => {
   const res = await fetch(`${API_URL}/areas`, {
     headers: getHeaders()
