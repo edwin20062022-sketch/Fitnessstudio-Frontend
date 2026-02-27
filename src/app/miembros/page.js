@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getMiembros, eliminarMiembro, getEquipos, actualizarEquipo, eliminarEquipo, getAreas, eliminarArea, asignarMiembroArea } from '../utils/api/api';
+import { getMiembros, eliminarMiembro, getEquipos, actualizarEquipo, eliminarEquipo, getAreas, eliminarArea, asignarMiembroArea, actualizarMiembro } from '../utils/api/api';
 
 export default function MiembrosPage() {
   const router = useRouter();
@@ -21,6 +21,14 @@ export default function MiembrosPage() {
   const [areaSeleccionada, setAreaSeleccionada] = useState('');
   const [cargandoAsignacion, setCargandoAsignacion] = useState(false);
   const [mensajeAsignacion, setMensajeAsignacion] = useState({ tipo: '', texto: '' });
+
+  // Modal edición
+  const [modalEditar, setModalEditar] = useState(false);
+  const [formEditar, setFormEditar] = useState({
+    nombre: '', email: '', telefono: '', membresia: 'Basica', meses: 1, precio: 99
+  });
+  const [cargandoEdicion, setCargandoEdicion] = useState(false);
+  const [mensajeEdicion, setMensajeEdicion] = useState({ tipo: '', texto: '' });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -137,6 +145,47 @@ export default function MiembrosPage() {
     }
   };
 
+  const abrirModalEditar = (miembro) => {
+    setFormEditar({
+      nombre: miembro.nombre,
+      email: miembro.email || '',
+      telefono: miembro.telefono || '',
+      membresia: miembro.membresia,
+      meses: miembro.meses,
+      precio: miembro.precio
+    });
+    setMiembroSeleccionado(miembro);
+    setMensajeEdicion({ tipo: '', texto: '' });
+    setModalEditar(true);
+  };
+
+  const handleEditar = async () => {
+    setCargandoEdicion(true);
+    try {
+      const data = await actualizarMiembro(miembroSeleccionado.id, {
+        ...formEditar,
+        meses: parseInt(formEditar.meses),
+        precio: parseFloat(formEditar.precio)
+      });
+      if (data.error) {
+        setMensajeEdicion({ tipo: 'error', texto: data.mensaje });
+        return;
+      }
+      setMensajeEdicion({ tipo: 'success', texto: '¡Miembro actualizado correctamente!' });
+      cargarMiembros(paginacion.pagina, filtroMembresia);
+      setTimeout(() => setModalEditar(false), 1500);
+    } catch (err) {
+      setMensajeEdicion({ tipo: 'error', texto: 'Error al actualizar el miembro.' });
+    } finally {
+      setCargandoEdicion(false);
+    }
+  };
+
+  const calcularPrecioEdicion = (membresia, meses) => {
+    const precios = { Basica: 99, Premium: 199 };
+    return (precios[membresia] || 99) * parseInt(meses);
+  };
+
   const cerrarSesion = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
@@ -251,10 +300,16 @@ export default function MiembrosPage() {
                               Ver
                             </button>
                             <button
+                              onClick={() => abrirModalEditar(m)}
+                              className="btn-primary text-xs py-1 px-2"
+                            >
+                              Editar
+                            </button>
+                            <button
                               onClick={() => abrirModalAsignar(m)}
                               className="btn-success text-xs py-1 px-2"
                             >
-                              Asignar Área
+                              Área
                             </button>
                             {usuario?.rol === 'admin' && (
                               <button
@@ -438,6 +493,121 @@ export default function MiembrosPage() {
                 className="btn-primary flex-1 disabled:opacity-50"
               >
                 {cargandoAsignacion ? 'Asignando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Editar miembro */}
+      {modalEditar && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setModalEditar(false); }}
+        >
+          <div className="card w-full max-w-md max-h-screen overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Editar Miembro</h3>
+              <button
+                onClick={() => setModalEditar(false)}
+                className="text-slate-400 hover:text-white text-xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            {mensajeEdicion.texto && (
+              <div className={`px-4 py-3 rounded-lg mb-4 text-sm ${
+                mensajeEdicion.tipo === 'success'
+                  ? 'bg-emerald-500/20 border border-emerald-500 text-emerald-400'
+                  : 'bg-red-500/20 border border-red-500 text-red-400'
+              }`}>
+                {mensajeEdicion.texto}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-slate-400 text-sm mb-1">Nombre completo *</label>
+                <input
+                  value={formEditar.nombre}
+                  onChange={e => setFormEditar({ ...formEditar, nombre: e.target.value })}
+                  className="input"
+                  placeholder="Juan Pérez"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-400 text-sm mb-1">Email</label>
+                <input
+                  type="email"
+                  value={formEditar.email}
+                  onChange={e => setFormEditar({ ...formEditar, email: e.target.value })}
+                  className="input"
+                  placeholder="juan@email.com"
+                />
+              </div>
+              <div>
+                <label className="block text-slate-400 text-sm mb-1">Teléfono</label>
+                <input
+                  value={formEditar.telefono}
+                  onChange={e => setFormEditar({ ...formEditar, telefono: e.target.value })}
+                  className="input"
+                  placeholder="555-0000"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-400 text-sm mb-1">Membresía *</label>
+                  <select
+                    value={formEditar.membresia}
+                    onChange={e => setFormEditar({
+                      ...formEditar,
+                      membresia: e.target.value,
+                      precio: calcularPrecioEdicion(e.target.value, formEditar.meses)
+                    })}
+                    className="input"
+                  >
+                    <option value="Basica">Básica - $99/mes</option>
+                    <option value="Premium">Premium - $199/mes</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-sm mb-1">Meses *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="24"
+                    value={formEditar.meses}
+                    onChange={e => setFormEditar({
+                      ...formEditar,
+                      meses: e.target.value,
+                      precio: calcularPrecioEdicion(formEditar.membresia, e.target.value)
+                    })}
+                    className="input"
+                  />
+                </div>
+              </div>
+              <div className="bg-slate-700 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Precio total calculado:</span>
+                  <span className="text-emerald-400 font-bold text-xl">${formEditar.precio} MXN</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setModalEditar(false)}
+                className="btn-secondary flex-1"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEditar}
+                disabled={cargandoEdicion || !formEditar.nombre}
+                className="btn-primary flex-1 disabled:opacity-50"
+              >
+                {cargandoEdicion ? 'Guardando...' : 'Guardar Cambios'}
               </button>
             </div>
           </div>
