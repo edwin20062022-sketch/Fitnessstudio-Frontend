@@ -92,13 +92,6 @@ export default function LoginPage() {
               {cargando ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </button>
           </form>
-
-          {/* Credenciales de prueba */}
-          <div className="mt-6 p-4 bg-slate-700/50 rounded-lg">
-            <p className="text-slate-400 text-xs font-semibold mb-2">CREDENCIALES DE PRUEBA:</p>
-            <p className="text-slate-300 text-xs">👑 Admin: admin@gimnasio.com / Admin123!</p>
-            <p className="text-slate-300 text-xs mt-1">👤 Usuario: user@gimnasio.com / User123!</p>
-          </div>
         </div>
 
       </div>
